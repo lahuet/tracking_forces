@@ -1,7 +1,7 @@
 """
 This file loads tracked whisker data from a .mat file and samples and converts
-point data to get trajectories in terms of joint angles. It then saves these
-data to a .p file.
+point data to get configurations in terms of joint angles. It then saves these
+data to a .p file in the specified directory.
 """
 import pickle
 import os
@@ -17,17 +17,17 @@ import time
 
 from util import *
 
-import matplotlib.pyplot as plt
-
 _multiprocessing = True
 #_multiprocessing = False
 
 def sample_points(n, d, x, y, z=None, k=1, s=10):
     """
-    Samples a 2d or 3d curve to get n points that are each a distance d 
-    from one another. The first point is always at t=0. (Fixed initial point).
-    Points on the curve are found by spline interpolation parameterized by
-    (s, k). Returns the x, y (and z) coordinates of the sampled points.
+    Samples a 2d or 3d curve to get n points that are each a distance d from
+    one another. The first point is always at t=0. (Fixed initial point).
+    Points on the curve are found by spline interpolation parameterized by (k,
+    s) where k is the order and s is a smoothing factor. Returns the x, y (and
+    z) coordinates of the sampled points. If no z-coordinates are provided, the
+    conversion is carried out in 2d.
     """
     N = len(x)
     if z is None:
@@ -67,7 +67,8 @@ def convert_single_frame(n, d, x_raw, y_raw, z_raw=None, cp_raw=None,
                          k=1, s=10, rx0_method='zero'):
     """
     Converts a single video frame into an angle configuration and a scaled
-    contact point.
+    contact point. Returns sampled (x,y,z) coordinates, contact point
+    coordinates, and the (dynamic) system configuration.
     """
     # Convert the input points and initialize output arrays.
     x = x_raw.astype(np.float).reshape((1,-1))[0]
@@ -102,7 +103,8 @@ def convert_single_frame(n, d, x_raw, y_raw, z_raw=None, cp_raw=None,
     if dim == 2:
         #plot_sampled_points(x,y,X,Y,CP[0],CP[1])
         ang = points_to_angles(zip(X, Y), dim=2)
-        Q = np.hstack((Y[0], X[0], ang))
+        #Q = np.hstack((Y[0], X[0], ang))
+        Q = np.hstack((ang[0], Y[0], X[0], ang[1:]))
 
     else: 
         theta_x, theta_y, theta_z =\
@@ -120,8 +122,9 @@ def convert_single_frame_wrapper(X):
     return convert_single_frame(n, d, x_raw, y_raw, z_raw, 
                                 cp_raw, k, s, rx0_method)
  
-def load_and_convert(file_name, dim, N, start_index=0, stop_index=-1, 
-                     k=1, s=10, rx0_method='zero', save=True):
+def convert_frames(file_name, dim, N, start_index=0, stop_index=-1, k=1, s=10,
+                   rx0_method='zero', save=True, path_name='./converted_data',
+                   variable_names=None):
     """ 
     Loads raw whisker data, samples the given points and saves to a file. This
     method computes configurations both in terms of points and angles. 
@@ -134,10 +137,18 @@ def load_and_convert(file_name, dim, N, start_index=0, stop_index=-1,
 
     # Get the data from the .mat file.
     print 'Loading MATLAB data...',
-    if dim == 2: names = {'x': 'xw', 'y': 'yw', 'cp': 'CP'}
-    else: names = {'x': 'xw3d', 'y': 'yw3d', 'z': 'zw3d', 'cp': 'CP'}
+    if variable_names is None:
+        # Try to use the defaults.
+        if dim == 2: names = {'x': 'xw', 'y': 'yw', 'cp': 'CP'}
+        else: names = {'x': 'xw3d', 'y': 'yw3d', 'z': 'zw3d', 'cp': 'CP'}
+    else:
+        names = variable_names
 
-    data_raw = sio.loadmat('./raw_data/%s' %file_name)
+    try:
+        data_raw = sio.loadmat('./raw_data/%s' %file_name)
+    except IOError:
+        raise Exception('File %s not found. Point data could not be loaded.' %file_name)
+
     x_raw = data_raw[names['x']]
     y_raw = data_raw[names['y']]
     if dim == 3: z_raw = data_raw[names['z']]
@@ -185,16 +196,19 @@ def load_and_convert(file_name, dim, N, start_index=0, stop_index=-1,
 
     # Finally, save the data to a file.
     if save:
+        c_dir = path_name
+        if not os.path.exists(c_dir):
+            os.makedirs(c_dir)
         print 'Saving to file...',
-        f = open('./converted_data/%s.p' %os.path.splitext(file_name)[0], 'w')
+        f = open('%s/%s.p' %(path_name, os.path.splitext(file_name)[0]), 'w')
         pickle.dump(CONVERTED_DATA, f)
         f.close()
-        print 'done (Saved to /converted_data/%s.p)' \
-                %os.path.splitext(file_name)[0]
+        print 'done (Saved to %s/%s.p)' %(path_name, os.path.splitext(file_name)[0])
 
     return CONVERTED_DATA 
 
 def plot_sampled_points(x,y,xs,ys,cpx,cpy):
+    """Get nice-looking pictures of the conversion results. (debug)"""
     import matplotlib.pyplot as plt
     plt.rc('text', usetex=True)
     fig = plt.figure(facecolor='white')
@@ -214,8 +228,6 @@ def plot_sampled_points(x,y,xs,ys,cpx,cpy):
     plt.show()
 
 
-
-
 if __name__ == "__main__":
       
     parser = argparse.ArgumentParser(description='whisker data conversion\
@@ -233,12 +245,27 @@ if __name__ == "__main__":
                          rotation at base", default='zero')
     parser.add_argument('--save', help="save (overwrite) converted data",
             action='store_true')
+    parser.add_argument('--xname', default='xw', help="name of x points")
+    parser.add_argument('--yname', default='yw', help="name of y points")
+    parser.add_argument('--zname', default='zw', help="name of z points")
+    parser.add_argument('--cpname', default='CP', help="name of contact points")
+    parser.add_argument('--output_path', default='./output_data', help="output\
+            directory")
     args = parser.parse_args()
 
     if not os.path.splitext(args.data_file)[1]:
         args.data_file += '.mat' 
+     
 
-    load_and_convert(args.data_file, dim=args.dim, N=args.N,
-            start_index=args.start, stop_index=args.stop,
-            k=args.k, s=args.s, rx0_method=args.rx0_method, save=args.save)    
+    variable_names = {'x': args.xname, 'y': args.yname, 'z': args.zname,
+                      'cp': args.cpname}
+    conversion_args = (args.data_file, args.dim, args.N, args.start, args.stop,
+                       args.k, args.s, args.rx0_method, args.save,
+                       args.output_path, variable_names)
+    
+    convert_frames(*conversion_args)
+
+    #convert_frames(args.data_file, dim=args.dim, N=args.N,
+    #        start_index=args.start, stop_index=args.stop,
+    #        k=args.k, s=args.s, rx0_method=args.rx0_method, save=args.save)    
 

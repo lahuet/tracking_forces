@@ -13,7 +13,7 @@ import argparse
 import matplotlib.pyplot as plt
 
 from util import *
-from convert import load_and_convert
+from convert import convert_frames
 
 def moving_average(interval, window_size):
     window = np.ones(int(window_size))/float(window_size)
@@ -50,7 +50,8 @@ def calc_vel_and_accel(x):
     return v, a
     
 def filter_data(file_name, dim=2, ref_index=0, 
-                filter_type='moving_average', filter_options={}):
+                filter_type='moving_average', filter_options={},
+                file_path='./converted_data'):
     """ 
     Loads the trajectories, filters them, and calculates velocities and
     accelerations. 
@@ -114,10 +115,10 @@ def filter_data(file_name, dim=2, ref_index=0,
 
     # Save the results to a file.
     print 'Saving to file...',
-    f = open('./converted_data/%s.p' %(file_name+'_filtered'), 'w')
+    f = open('%s/%s.p' %(file_path,file_name+'_filtered'), 'w')
     pickle.dump(FILTERED_DATA, f)
     f.close()
-    print 'done (Saved to /converted_data/%s_filtered.p)' %(file_name)
+    print 'done (Saved to %s/%s_filtered.p)' %(file_path, file_name)
     return FILTERED_DATA
 
 if __name__ == "__main__":

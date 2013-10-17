@@ -7,7 +7,7 @@ import sys
 from StringIO import StringIO
 
 from util import *
-from whisker import make_default_whisker
+from whisker import make_whisker
 
 VIDEO_TIME_SCALING = 0.1/20     # (real time)/(video time)
 
@@ -80,9 +80,9 @@ def animate_whisker_2d(file_name, show=True, save_movie=False, debug=False):
                                        frames=len(X), interval=10, blit=False)
 
     if save_movie:
-        anim.save('./output_data/%s/%s.mp4' %(file_name, file_name), fps=15,
-                  writer=animation.FFMpegFileWriter(),
-                  extra_args=['-vcodec', 'libx264'])
+        anim.save('./output_data/%s/%s.mp4' %(file_name, file_name), fps=15)
+                 # writer=animation.FFMpegFileWriter(),
+                 # extra_args=['-vcodec', 'libx264'])
 
     if show:
         sys.exit(plt.show())
@@ -99,7 +99,6 @@ def animate_whisker_3d(file_name, show=True, save_movie=False, debug=False):
     fig = plt.figure()
     ax = Axes3D(fig)
 
-    #pts = sum([ax.plot([], [], [], '-o')], [])
     pts = ax.plot([], [], [], '-o')
     if debug: fpts = ax.plot([], [], [], 'r-o')
     time_text = ax.text(0.01, 0.01, 0.0, '', transform=ax.transAxes)
@@ -140,9 +139,7 @@ def animate_whisker_3d(file_name, show=True, save_movie=False, debug=False):
 
     if show:
         print 'done'
-        plt.show()
-        #plt.clf()
-        #plt.close()
+        sys.exit(plt.show())
 
 def animate_whisker(dim, *args, **kwargs):
     if dim == 2:
@@ -150,14 +147,13 @@ def animate_whisker(dim, *args, **kwargs):
     elif dim == 3:
         animate_whisker_3d(*args, **kwargs)
 
-
 def get_filtered_points(file_name, dim):
     converted_data = load_converted_data(file_name+'.p')
     filtered_data = load_converted_data(file_name+'_filtered.p')
     ref = filtered_data['ref']
     realstdout = sys.stdout
     sys.stdout = StringIO()
-    whisker = make_default_whisker(filtered_data['ref'],                                                        converted_data['link_length'], dim=dim)
+    whisker = make_whisker(dim, filtered_data['ref'], converted_data['link_length'])
     sys.stdout = realstdout
     N = whisker.num_links  
     n = len(converted_data['x'])
@@ -176,7 +172,6 @@ def get_filtered_points(file_name, dim):
         return X, Y 
 
     return X, Y, Z
-
 
    
 if __name__ == "__main__":

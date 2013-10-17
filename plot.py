@@ -30,8 +30,10 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
     data = load_output_data(data_file)
     t = data['t']
 
-    spike_times = get_spike_times(raw_data_file, t[-1], t[1]-t[0])
+    #spike_times = get_spike_times(raw_data_file, t[-1], t[1]-t[0])
     print 'done'
+    if not os.path.exists(data_path+'/pics'):
+        os.makedirs(data_path+'/pics')
 
     # The first 3 figures are the raw force/moment signals (both static and 
     # dynamic forces are plotted on the same axes). More plots are also 
@@ -46,9 +48,9 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('M')
     plt.title('Moment')
     plt.grid()
-    plt.savefig('%s/M.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/M_spikes.png' %data_path)
+    plt.savefig('%s/pics/M.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/M_spikes.png' %data_path)
 
     # Axial force.
     plt.figure(2)
@@ -58,9 +60,9 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fa')
     plt.title('Fa')
     plt.grid()
-    plt.savefig('%s/Fa.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Fa_spikes.png' %data_path)
+    plt.savefig('%s/pics/Fa.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Fa_spikes.png' %data_path)
 
     # Transverse force.
     plt.figure(3)
@@ -70,9 +72,9 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Ft')
     plt.title('Ft')
     plt.grid()
-    plt.savefig('%s/Ft.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Ft_spikes.png' %data_path)
+    plt.savefig('%s/pics/Ft.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Ft_spikes.png' %data_path)
 
     # Resultant force.
     plt.figure(4)
@@ -83,9 +85,9 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fr')
     plt.title('Fr')
     plt.grid()
-    plt.savefig('%s/Fr.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Fr_spikes.png' %data_path)
+    plt.savefig('%s/pics/Fr.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Fr_spikes.png' %data_path)
 
     print 'done'
 
@@ -104,7 +106,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     print 'Loading force data...',   
     data = load_output_data(data_file)
     t = data['t']
-    spike_times = get_spike_times(raw_data_file, t[-1], t[1]-t[0])
+    #spike_times = get_spike_times(raw_data_file, t[-1], t[1]-t[0])
+    if not os.path.exists(data_path+'/pics'):
+        os.makedirs(data_path+'/pics')
     print 'done'
     print 'Creating and saving plots...', 
 
@@ -116,9 +120,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Mx')
     plt.title('Moment (x)')
     plt.grid()
-    plt.savefig('%s/Mx.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Mx_spikes.png' %data_path)
+    plt.savefig('%s/pics/Mx.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Mx_spikes.png' %data_path)
 
     # y-moment
     plt.figure(2)
@@ -128,9 +132,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('M')
     plt.title('Moment (y)')
     plt.grid()
-    plt.savefig('%s/My.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/My_spikes.png' %data_path)
+    plt.savefig('%s/pics/My.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/My_spikes.png' %data_path)
 
     # z-moment
     plt.figure(3)
@@ -140,9 +144,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Mz')
     plt.title('Moment (z)')
     plt.grid()
-    plt.savefig('%s/Mz.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Mz_spikes.png' %data_path)
+    plt.savefig('%s/pics/Mz.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Mz_spikes.png' %data_path)
    
     # x-force
     plt.figure(4)
@@ -152,9 +156,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fx')
     plt.title('Fx')
     plt.grid()
-    plt.savefig('%s/Fx.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Fx_spikes.png' %data_path)
+    plt.savefig('%s/pics/Fx.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Fx_spikes.png' %data_path)
 
     # y-force
     plt.figure(5)
@@ -164,9 +168,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fy')
     plt.title('Fy')
     plt.grid()
-    plt.savefig('%s/Fy.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Fy_spikes.png' %data_path)
+    plt.savefig('%s/pics/Fy.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Fy_spikes.png' %data_path)
 
     # z-force
     plt.figure(6)
@@ -177,9 +181,9 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fz')
     plt.title('Fz')
     plt.grid()
-    plt.savefig('%s/Fz.png' %data_path)
-    draw_spike_times(spike_times)
-    plt.savefig('%s/Fz_spikes.png' %data_path)
+    plt.savefig('%s/pics/Fz.png' %data_path)
+    #draw_spike_times(spike_times)
+    #plt.savefig('%s/Fz_spikes.png' %data_path)
 
     print 'done'
 

@@ -3,10 +3,10 @@ import os
 import argparse
 import scipy.io as sio
 import trep
-
-import matplotlib.pyplot as plt
+import shutil
 
 from util import *
+
 
 def update_contact(whisker, CP):
     """Adjusts the contact constraint to match current contact point."""
@@ -30,7 +30,7 @@ def update_contact(whisker, CP):
             plane_frame = get_closest_frame(whisker, CP)
 
         # If the peg constraint already exists in the system, simply move the
-        # plane_frame.
+        # plane frame.
         if whisker.in_contact:
             whisker.get_constraint('peg')._plane_frame = plane_frame
 
@@ -62,7 +62,7 @@ def get_closest_frame(whisker, CP):
     """Gets the whisker frame that is the closest to the point of contact."""
     if len(CP) == 2:
         x, y = zip(*whisker.config_points)
-        index = closest_point(x, y, CP)
+        index = closest_point_2d(x, y, CP)
     else:
         x, y, z = zip(*whisker.config_points)
         index = closest_point_3d(x, y, z, CP)
@@ -78,7 +78,7 @@ def remove_peg_constraint(whisker):
     whisker._structure_changed()
 
 def constraint_vec(whisker, length):
-    """Returns two points on the normal of the point constraint."""
+    """Returns two points on the normal of the point constraint. (debug)"""
     if not whisker.in_contact:
         return ([], [])
     plane_frame = whisker.contact_frame
@@ -167,16 +167,21 @@ def discrete_constraint_forces(sys, qd0, qd1, qd2, dynamic=True):
     LAM = lam_bar/DT
     return -LAM
 
-def save_forces_to_file(file_name, data):
+def save_forces_to_file(file_name, path_name, data, overwrite=True):
     """Saves force data to .p and .mat files."""
-    if not os.path.exists('./output_data/%s' %file_name):
-        os.makedirs('./output_data/%s' %file_name)
-    f = open('./output_data/%s/%s_forces.p' %(file_name, file_name), 'w')
+    f_dir = '%s/%s' %(path_name, file_name)
+    if not os.path.exists(f_dir):
+        os.makedirs(f_dir)
+    else:
+        shutil.rmtree(f_dir)
+        os.makedirs(f_dir)
+        
+    f = open('%s/%s_forces.p' %(f_dir, file_name), 'w')
     pickle.dump(data, f)
     f.close()
-    sio.savemat('./output_data/%s/%s_forces.mat' %(file_name,file_name), data)
+    sio.savemat('%s/%s_forces.mat' %(f_dir, file_name), data)
 
-def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name):
+def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
     """Calculates the constraint forces given the dynamics."""
     print '-'*20+'CALC FORCES (2d)'+'-'*20
     n_steps = len(qd) 
@@ -248,11 +253,11 @@ def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name):
 
     # Save the results to a file.
     print 'Saving to file...',
-    save_forces_to_file(file_name, FORCES)    
-    print 'done (Saved to /output_data/%s/%s_forces.mat(.p))' %(file_name, file_name)
+    save_forces_to_file(file_name, path_name, FORCES, ow)    
+    print 'done (Saved to %s/%s/%s_forces.mat(.p))' %(path_name, file_name, file_name)
     return FORCES
 
-def calc_forces_3d(whisker, qd, dqd, ddqd, CP, file_name):
+def calc_forces_3d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
     """ Calculates the constraint forces given the dynamics. """
     print '-'*20+'CALC FORCES (3d)'+'-'*20
     n_steps = len(qd) 
@@ -312,8 +317,8 @@ def calc_forces_3d(whisker, qd, dqd, ddqd, CP, file_name):
 
     # Save the results to a file.
     print 'Saving to file...',
-    save_forces_to_file(file_name, FORCES)
-    print 'done (Saved to /output_data/%s/%s_forces.mat(.p))' %(file_name, file_name)
+    save_forces_to_file(file_name, path_name, FORCES, ow)
+    print 'done (Saved to %s/%s/%s_forces.mat(.p))' %(path_name, file_name, file_name)
     return FORCES
 
 def calc_forces(dim, *args, **kwargs):
@@ -323,6 +328,8 @@ def calc_forces(dim, *args, **kwargs):
     elif dim == 3:
         calc_forces_3d(*args, **kwargs)
 
+
+'''
 if __name__ == "__main__":
     from qfilter import filter_data
     from whisker import make_default_whisker
@@ -358,3 +365,4 @@ if __name__ == "__main__":
             filtered_data['v'],
             filtered_data['a'],
             filtered_data['cp'], args.data_file)
+'''

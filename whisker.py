@@ -24,11 +24,15 @@ class FixedConfig(trep.Constraint):
     def h_dqdq(self, q1, q2):
         return 0.0
 
+    def h_dt(self):
+        return 0.0
+
 class Whisker2D(trep.System):
     """A two-dimensional whisker."""
     def __init__(self, parameters):
         trep.System.__init__(self)
 
+        self.dim = 2
         self.num_links = parameters['N']
         self.lengths = parameters['L'] 
         self.import_frames(self.whisker_frames(parameters['L']))
@@ -47,9 +51,10 @@ class Whisker2D(trep.System):
             frames = [rx('theta-%d' %j, name='f%d' %j), frames]
             frames = [rx('curvature-%d' %j, kinematic=True), frames]
         frames = [ty(L, name='Link-0'), frames]
+        frames = [tz('z'), [ty('y', name='Base_Point'), frames]]
         frames = [rx('theta-0', name='f0'), frames]
         frames = [rx('curvature-0', kinematic=True), frames]
-        frames = [tz('z'), [ty('y', name='Base_Point'), frames]]
+        #frames = [tz('z'), [ty('y', name='Base_Point'), frames]]
         frames = [tz('z0', kinematic=True), [ty('y0', kinematic=True), frames]]
         return frames
             
@@ -79,7 +84,7 @@ class Whisker2D(trep.System):
         FixedConfig(self, 'theta-0', 0.0)
         trep.constraints.PointOnPlane(self, 'Base_Point', (0,0,1), 
                 'World', name='FZ') 
-        trep.constraints.PointOnPlane(self, 'Base_Point', (0,1,0),
+        trep.constraints.PointOnPlane(self, 'Base_Point', (0,-1,0),
                 'World', name='FY')
      
     @property
@@ -151,6 +156,7 @@ class Whisker3D(trep.System):
     def __init__(self, parameters, ref):
         trep.System.__init__(self)
 
+        self.dim = 3
         self.num_links = parameters['N']
         self._link_length = parameters['L'] 
         self._ref = ref
@@ -256,73 +262,73 @@ class Whisker3D(trep.System):
         return self.get_config('theta_%s-%d' %(axis, num))
 
 
-def make_default_whisker(q0, L, dim=2):
+def make_whisker(dim, q0, L, rbase=100e-6, taper=1.0/15, damping_ratio=None,
+        rho=1.0, E=3.3e9):
     """ 
     Assembles the whisker based on material properties and initial 
     configuration. The default material and geometric properties from 
-    elastica2d are used. 
+    elastica2d are used by default. 
     """
     assert dim in [2,3], "dimension must be 2 or 3"    
-    
-    E = 3.3e9
-
     print 19*'-'+'BUILD WHISKER (%dd)'%dim+19*'-'
 
-    if dim == 2:
-        N = len(q0)-2
-        I = calc_inertia(N)
+    print 'Getting parameters...',
+    if dim==2: N = len(q0)-2
+    else: N = (len(q0)-4)/2
+    I = calc_inertia(N, rbase, taper)
+    K = E*I/L
+    M = calc_mass(L, N, rho, rbase, taper)
+    if damping_ratio<0:
+        C = get_interp_damping(L,N)
+    else:
+        C = calc_damping(N, K, M, damping_ratio)
+    parameters = {'L': L, 'k': K[:-1], 'c': C, 'm': M, 'N':N}
+    print 'done'
 
-        print 'Getting parameters...',
-        parameters = {'L': L, 'k': E*I[:-1]/L, 'c': get_damping(L, N),
-                      'm': list(get_mass(L, N)), 'N': N} 
-        print 'done'
-
-        print 'Building system...',
+    print 'Building system...',
+    if dim==2:
         whisker = Whisker2D(parameters)
         whisker.reference_shape = q0
-        peg_frames = [ty('py', kinematic=True), [tz('pz', kinematic=True, 
-                                                    name='peg_frame')]]
-        whisker.world_frame.import_frames(peg_frames)
-        print 'done'
+        peg_frames = [ty('py', kinematic=True),
+                      [tz('pz', kinematic=True, name='peg_frame')]]
     else:
-        N = (len(q0)-4)/2
-        I = calc_inertia(N)
-
-        print 'Getting parameters...',
-        parameters = {'L': L, 'k': E*I[:-1]/L, 'c': get_damping(L, N),
-                      'm': list(get_mass(L, N)), 'N': N} 
-        print 'done'
-
-        print 'Building system...',
         whisker = Whisker3D(parameters, q0)
         peg_frames = [tx('px', kinematic=True), [ty('py', kinematic=True),
                       [tz('pz', kinematic=True, name='peg_frame')]]]
-        whisker.world_frame.import_frames(peg_frames)
-        print 'done'
-
+    whisker.world_frame.import_frames(peg_frames)
+    print 'done'
     return whisker
 
-def calc_inertia(N):
-    """ The moment of inertia for a tapered cylinder with N points. """
-    R = np.linspace(100e-6,(100e-6)/15,N+1)
+def calc_inertia(N, rbase, taper):
+    """The moment of inertia for a tapered cylinder with N points."""
+    R = np.linspace(rbase, rbase*taper, N+1)
     return 0.25*np.pi*R**4
 
-def get_mass(L, N):
-    """ The mass distribution along the whisker. 
-        L = link length, N = # of links. """
+def calc_mass(L, N, rho, rbase, taper):
+    """The mass at each node."""
+    R = np.linspace(rbase, rbase*taper, N+1)
+    return rho*np.pi*(R**2)*L
+
+def calc_damping(N, k, m, zeta):
+    """
+    Calculates damping coefficients at each node from a given damping ratio.
+    """
+    return 2*m*np.sqrt(k/m)*zeta
+
+def get_interp_mass(L, N):
+    """Calculates mass by interpolation of SWD values."""
     f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['m'], 
             fill_value=0.0, bounds_error=False)
     return f(np.linspace(L, L*N, N))
 
-def get_damping(L, N):
-    """ The mass distribution along the whisker. 
-        L = link length, N = # of links. """
+def get_interp_damping(L, N):
+    """Calculates damping by interpolaton of SWD values. """
     f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['c'], 
             fill_value=0.0, bounds_error=False)
     return f(np.linspace(L, L*N, N))
 
 # Default parameters for a single whisker, used for interpolation of values for 
-# all whiskers.
+# all whiskers. These are the latest values from CND.
 SWD = {'N': 13,
        'L': [4.08e-3]*13,
        'k': [3.26e-5, 3.09e-5, 2.68e-5, 2.16e-5, 1.64e-5, 1.15e-5, 7.47e-6,

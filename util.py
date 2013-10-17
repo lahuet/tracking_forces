@@ -5,10 +5,14 @@ import scipy.io as sio
 from scipy.interpolate import splprep, splev, interp1d, splrep
 from scipy.spatial.distance import cdist
 import pickle
+import ConfigParser
 
-MM_PER_PIXEL = 0.05818      # given scaling factor
-SCALE = MM_PER_PIXEL/1000   # conversion from pixels to meters
-DT = 0.001                  # given (constant) time step
+# Read the spatial and temporal scaling factors.
+config = ConfigParser.SafeConfigParser()
+config.read(['tracking_forces.cfg'])
+MM_PER_PIXEL = config.getfloat('general', 'mm_per_pixel')
+SCALE = MM_PER_PIXEL/1000 
+DT = config.getfloat('general', 'dt')     
 
 def dist_from_points(x, y):
     """Array of distances between a series of points."""
@@ -43,7 +47,7 @@ def rotate(x, y, theta):
     rp = np.dot(R, p)
     return (rp[0,:], rp[1,:])  
 
-def closest_point(x, y, p):
+def closest_point_2d(x, y, p):
     """ 
     Given a list of points (x,y), returns the index of the point that is
     closest to p.
@@ -53,9 +57,9 @@ def closest_point(x, y, p):
     d = cdist(XY, p)
     return np.argmin(d)
 
-def wrap_to_pi(num):
-    """Converts angle to between -pi and pi."""
-    return (num + np.pi) % (2*np.pi)-np.pi
+#def wrap_to_pi(num):
+#    """Converts angle to between -pi and pi."""
+#    return (num + np.pi) % (2*np.pi)-np.pi
 
 def closest_point_3d(x, y, z, p):
     """ 
@@ -244,8 +248,8 @@ def angles_to_points_3d(theta_x, theta_y, theta_z, L):
 
 def rotation_to_euler(R, zy_only=True):
     """ 
-    Takes a rotation matrix and returns the euler angles according to the 
-    convention Rz*Ry*Rx. 
+    Takes a rotation matrix and returns the euler angles. If zy_only is True,
+    the matrix is assumed to be R=Rz*Ry. If zy_only is false, R=Rz*Ry*Rx. 
     """
     # Take theta_x = 0, only find rotations about z- and y-axes. 
     if zy_only:
@@ -349,7 +353,8 @@ def extract_angles(config):
 def get_reference_frame(cp):
     """
     Returns the index of the frame just before first contact. If there are 
-    no contacts, returns 0.
+    no contacts, returns 0. Return i-1 where i is the index of the first
+    non-nan element. 
     """
     index = np.where(~np.isnan(cp[:,1]))[0]
     if index.any():

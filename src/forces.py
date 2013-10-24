@@ -3,7 +3,6 @@ import os
 import argparse
 import scipy.io as sio
 import trep
-import shutil
 
 from util import *
 
@@ -147,13 +146,13 @@ def discrete_constraint_forces(sys, qd0, qd1, qd2, dt, dynamic=True):
         qd2 = qd1.copy()
     
     sys.qd = 0.5*(qd1+qd2)
-    sys.dqd = (qd2-qd1)/DT
-    D1Ld = np.array([0.5*DT*sys.L_dq(q1)-sys.L_ddq(q1) for q1 in sys.dyn_configs])
-    Fm = np.array([sum([DT*F.f(q1) for F in sys.forces]) for q1 in sys.dyn_configs])
+    sys.dqd = (qd2-qd1)/dt
+    D1Ld = np.array([0.5*dt*sys.L_dq(q1)-sys.L_ddq(q1) for q1 in sys.dyn_configs])
+    Fm = np.array([sum([dt*F.f(q1) for F in sys.forces]) for q1 in sys.dyn_configs])
     
     sys.qd = 0.5*(qd0+qd1)
-    sys.dqd = (qd1-qd0)/DT
-    D2Ld = np.array([0.5*DT*sys.L_dq(q1)+sys.L_ddq(q1) for q1 in sys.dyn_configs])
+    sys.dqd = (qd1-qd0)/dt
+    D2Ld = np.array([0.5*dt*sys.L_dq(q1)+sys.L_ddq(q1) for q1 in sys.dyn_configs])
     
     sys.qd = qd1
     sys.dqd = 0.0
@@ -164,7 +163,7 @@ def discrete_constraint_forces(sys, qd0, qd1, qd2, dt, dynamic=True):
     lam_bar = np.dot(dh_inv, np.dot(Dh,(D2Ld + D1Ld + Fm)))
     sys.set_state(q, dq) # Reset the initial system state.
 
-    LAM = lam_bar/DT
+    LAM = lam_bar/dt
     return -LAM
 
 def save_forces_to_file(file_name, path_name, data, overwrite=True):
@@ -177,7 +176,7 @@ def save_forces_to_file(file_name, path_name, data, overwrite=True):
     f.close()
     sio.savemat('%s%s_forces.mat' %(path_name, file_name), data)
 
-def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
+def calc_forces_2d(whisker, qd, dqd, ddqd, CP, dt, file_name, path_name, ow):
     """Calculates the constraint forces given the dynamics."""
     print '-'*20+'CALC FORCES (2d)'+'-'*20
     n_steps = len(qd) 
@@ -213,7 +212,7 @@ def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
         lam_static = static_constraint_forces(whisker)
         if (i > 0) and (i < (n_steps-1)):
             lam_discrete = discrete_constraint_forces(whisker, qd[i-1], qd[i],
-                    qd[i+1], dynamic=True)
+                    qd[i+1], dt, dynamic=True)
         else:
             lam_discrete = np.zeros(3)
 
@@ -228,24 +227,11 @@ def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
         RXN_DSC['FY'][i] = lam_discrete[fy_index]
         RXN_DSC['FZ'][i] = lam_discrete[fz_index]
 
-        # Rotate base forces to get axial and transverse components.
-        #RXN_DYN['FA'][i],\
-        #        RXN_DYN['FT'][i] = rotate(lam_dyn[fy_index],
-        #                                  lam_dyn[fz_index], whisker.base_angle)
-        #RXN_STC['FA'][i],\
-        #        RXN_STC['FT'][i] = rotate(lam_static[fy_index], 
-        #                               lam_static[fz_index], whisker.base_angle)
-        #RXN_DSC['FA'][i],\
-        #        RXN_DSC['FT'][i] = rotate(lam_discrete[fy_index], 
-        #                               lam_discrete[fz_index], whisker.base_angle)
-        
         T[i] = t
-        t += DT
+        t += dt
     print 'done'    
 
-    FORCES = {'dyn': RXN_DYN, 'static': RXN_STC, 'discrete': RXN_DSC,'t': T, 'dim': 2}
-    #plt.plot(T, RXN_DYN['FZ'], T, RXN_DSC['FZ'], T, RXN_STC['FZ'])
-    #plt.show()
+    FORCES = {'dyn': RXN_DYN, 'static': RXN_STC, 'discrete': RXN_DSC, 't': T, 'dim': 2}
 
     # Save the results to a file.
     print 'Saving to file...',

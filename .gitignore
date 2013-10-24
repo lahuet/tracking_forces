@@ -6,3 +6,4 @@
 /build
 /dist
 /tracking_forces.egg-info
+*.png

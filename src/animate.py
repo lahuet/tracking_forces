@@ -34,13 +34,14 @@ def load_contact_points(path_name, file_name, dim):
         z = CP[:,3]
         return x, y, z
 
-def animate_whisker_2d(file_name, show=True, save_movie=False, debug=False):
+def animate_whisker_2d(file_name, path_name, dt, show=True, save_movie=False,
+                       debug=False):
     """Draws 2d animation of whisker motion."""
     print '-'*22+'ANIMATE (2d)'+'-'*22
 
-    X, Y = load_points(file_name+'.p', 2)
-    if debug: Xf, Yf = get_filtered_points(file_name, 2)
-    cp_x, cp_y = load_contact_points(file_name+'.p', 2)
+    X, Y = load_points(path_name, file_name+'.p', 2)
+    if debug: Xf, Yf = get_filtered_points(path_name, file_name, 2)
+    cp_x, cp_y = load_contact_points(path_name, file_name+'.p', 2)
 
     plt.close('all')
     fig = plt.figure()
@@ -68,7 +69,7 @@ def animate_whisker_2d(file_name, show=True, save_movie=False, debug=False):
         else:
             cp_pt[0].set_data([], [])
 
-        time_text.set_text('t = %.3f s' %(DT*i))
+        time_text.set_text('t = %.3f s' %(dt*i))
         fig.canvas.draw()
 
     ax.set_xlabel('X')
@@ -77,18 +78,16 @@ def animate_whisker_2d(file_name, show=True, save_movie=False, debug=False):
     ax.set_title(file_name)
     
     anim = animation.FuncAnimation(fig, animate, init_func=init,
-                                       frames=len(X), interval=10, blit=False)
+                                   frames=len(X), interval=10, blit=False)
 
     if save_movie:
-        anim.save('./output_data/%s/%s.mp4' %(file_name, file_name), fps=15)
-                 # writer=animation.FFMpegFileWriter(),
-                 # extra_args=['-vcodec', 'libx264'])
+        anim.save('%s%s.mp4' %(path_name, file_name), fps=15)
 
     if show:
         sys.exit(plt.show())
 
-
-def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False, debug=False):
+def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False,
+                       debug=False):
     """ Draws 3d animation of whisker motion. """
     print '-'*22+'ANIMATE (3d)'+'-'*22
 

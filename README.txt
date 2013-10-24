@@ -1,53 +1,29 @@
-This code calculates dynamic reaction forces from tracked whisker data.
+This code calculates dynamic reaction forces from tracked whisker data. 
 
+To install the module, cd into the top directory and run:
+$ sudo python setup.py install
 
-    -- The process of calculating reaction forces from image data can be 
-       done one step at a time or all at once. To run the entire process,
-       place the .mat file of raw data in the raw_data folder and run
+The four basic steps of the process are:
+    1. Converting point data from images to angle configurations.
+    2. Filtering the trajectories.
+    3. Calculating reaction forces (using trep).
+    4. Post-processing (plotting and animation).
 
-       $ python tracking_forces.py data_file.mat
+The entire process can be run from the command line using:
+$ tracking_forces point_data_file.mat
+where point_data_file contains data for the shape of the whisker. (If the setup
+script is run, this can be run from any directory.)
 
-       from the main directory. The results will show up in the output_data
-       folder, including .p and .mat files and plots. This will use all of 
-       the default settings. All of the subprocesses will print their
-       progress.
+There are many options to choose when running this code. All are read from a
+.cfg file. If no .cfg file exists in the current directory, default values are
+used from a file installed with the rest of the module. For an example
+configuration file, see examples.
 
-       Settings and options are stored in the configuration 
-       file tracking_forces.cfg and should be set before any calculations.
+The output is a set of files saved in a folder with the same name as the input
+file. All converted and filtered data are stored in file.p and file_filtered.p.
+The output forces and moments are stored in file_forces.mat. Optional plots and
+movies are stored in the same location.
 
-
-   -- The individual steps of the process are:
-
-        - To convert the tracked point data to sampled points and a 
-          configuration in terms of joint angles, run
-
-          $ python convert.py data_file
-
-          the results will be saved in the converted_data folder. This process
-          can take some time. See file for optional arguments.
-
-
-        - To filter the angle trajectories and compute the velocities and
-          accelerations needed for the constraint force calculations, run
-
-          $ python qfilter.py data_file
-
-          the results will also show up in the converted data folder.
-
-
-        - To compute the constraint forces for all time steps, run
-          
-          $ python forces.py data_file
-
-
-        - To plot the results run
-
-          $ python plot.py data_file
-
-          the results will be saved in the output_data folder as .png images.  
-
-	- To animate the whisker's motion run
-	 
-	  $ python animate.py data_file
-
-	  if specified, an .mp4 movie will be saved in the output_data folder.
+This file structure is used because Step 1 can take a long time for large input
+files. This allows one to recalculate forces after doing the conversion only
+once. (See the .cfg file.)

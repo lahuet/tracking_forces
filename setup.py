@@ -8,5 +8,6 @@ setup(name='tracking_forces',
       package_dir={'tracking_forces': 'src'},
       packages=['tracking_forces'],
       package_data={'':['tracking_forces.cfg']},
-      entry_points={'console_scripts': ['tracking_forces=tracking_forces.tracking_forces:main']}
+      entry_points={'console_scripts':\
+          ['tracking_forces=tracking_forces.tracking_forces:main']}
      )

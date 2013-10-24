@@ -11,9 +11,9 @@ from whisker import make_whisker
 
 VIDEO_TIME_SCALING = 0.1/20     # (real time)/(video time)
 
-def load_points(file_name, dim):
+def load_points(path_name, file_name, dim):
     """Returns x, y, (and z) coordinates of whisker."""
-    data = load_converted_data(file_name)
+    data = load_file(path_name+file_name)
     X = data['x']
     Y = data['y']
     if dim == 2:
@@ -22,9 +22,9 @@ def load_points(file_name, dim):
         Z = data['z']
         return X, Y, Z
 
-def load_contact_points(file_name, dim):
+def load_contact_points(path_name, file_name, dim):
     """Returns the x, y, (and z) locations of the contact points."""
-    data = load_converted_data(file_name)
+    data = load_file(path_name+file_name)
     CP = data['CP']
     x = CP[:,0]
     y = CP[:,1]
@@ -88,12 +88,12 @@ def animate_whisker_2d(file_name, show=True, save_movie=False, debug=False):
         sys.exit(plt.show())
 
 
-def animate_whisker_3d(file_name, show=True, save_movie=False, debug=False):
+def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False, debug=False):
     """ Draws 3d animation of whisker motion. """
     print '-'*22+'ANIMATE (3d)'+'-'*22
 
-    X, Y, Z = load_points(file_name+'.p', 3)
-    if debug: Xf, Yf, Zf = get_filtered_points(file_name, 3)
+    X, Y, Z = load_points(path_name, file_name+'.p', 3)
+    if debug: Xf, Yf, Zf = get_filtered_points(path_name, file_name, 3)
 
     plt.close('all')
     fig = plt.figure()
@@ -121,7 +121,7 @@ def animate_whisker_3d(file_name, show=True, save_movie=False, debug=False):
         if debug:
             fpts[0].set_data(Xf[i], Yf[i])
             fpts[0].set_3d_properties(Zf[i])
-        time_text.set_text('t = %.3f s' %(DT*i))
+        time_text.set_text('t = %.3f s' %(dt*i))
         fig.canvas.draw()
 
     ax.set_xlabel('X')
@@ -133,7 +133,9 @@ def animate_whisker_3d(file_name, show=True, save_movie=False, debug=False):
                                    frames=len(X), interval=10, blit=False)
 
     if save_movie:
-        anim.save('./output_data/%s/%s.mp4' %(file_name, file_name), fps=15)
+        anim.save('%s%s.mp4' %(path_name, file_name), fps=15)
+        # I needed the following arguments added to the save function to get
+        # this to work on a mac.
                   #writer=animation.FFMpegFileWriter(),
                   #extra_args=['-vcodec', 'libx264'])
 
@@ -147,9 +149,9 @@ def animate_whisker(dim, *args, **kwargs):
     elif dim == 3:
         animate_whisker_3d(*args, **kwargs)
 
-def get_filtered_points(file_name, dim):
-    converted_data = load_converted_data(file_name+'.p')
-    filtered_data = load_converted_data(file_name+'_filtered.p')
+def get_filtered_points(path_name, file_name, dim):
+    converted_data = load_file(path_name+file_name+'.p')
+    filtered_data = load_file(path_name+file_name+'_filtered.p')
     ref = filtered_data['ref']
     realstdout = sys.stdout
     sys.stdout = StringIO()
@@ -172,26 +174,4 @@ def get_filtered_points(file_name, dim):
         return X, Y 
 
     return X, Y, Z
-
-   
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='whisker animation options')
-    parser.add_argument('data_file', help=".mat file with tracked image data")
-    parser.add_argument('--dim', help="dimension (2 or 3)", default=2, type=int)
-    parser.add_argument('--save', help="save movie", action='store_true')
-    parser.add_argument('--show', help="show animation", action='store_true')
-    parser.add_argument('--debug', help="debug config conversion", 
-                        action='store_true')
-    args = parser.parse_args()
-
-    assert args.dim in [2,3], "dimension must be 2 or 3"
-
-    if args.dim == 2:
-        animate_whisker_2d(args.data_file, save_movie=args.save,
-                           show=args.show, debug=args.debug)
-
-    else:
-        animate_whisker_3d(args.data_file, save_movie=args.save, 
-                           show=args.show, debug=args.debug)
 

@@ -25,9 +25,10 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
     optionally be displayed.
     """
     print '-'*23+'PLOT (2d)'+'-'*24
+    print 'path', data_path
     
     print 'Loading data...',
-    data = load_output_data(data_file)
+    data = load_file('%s/%s' %(data_path, data_file))
     t = data['t']
 
     #spike_times = get_spike_times(raw_data_file, t[-1], t[1]-t[0])
@@ -54,7 +55,7 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
 
     # Axial force.
     plt.figure(2)
-    plt.plot(t, data['dyn']['FA'], t, data['static']['FA'])
+    plt.plot(t, data['dyn']['FY'], t, data['static']['FY'])
     plt.legend(["Dynamic", "Static"])
     plt.xlabel('t')
     plt.ylabel('Fa')
@@ -66,7 +67,7 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
 
     # Transverse force.
     plt.figure(3)
-    plt.plot(t, data['dyn']['FT'], t, data['static']['FT'])
+    plt.plot(t, data['dyn']['FZ'], t, data['static']['FZ'])
     plt.legend(["Dynamic", "Static"])
     plt.xlabel('t')
     plt.ylabel('Ft')
@@ -95,7 +96,7 @@ def plot_and_save_2d(data_file, data_path, raw_data_file, show=False):
         plt.show()
 
 
-def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
+def plot_and_save_3d(file_name, path_name, raw_data_file, show=False):
     """
     Given a data file with output forces and moments, this method creates plots
     of the results and saves them to files.
@@ -104,11 +105,12 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     
     dyn=1.0
     print 'Loading force data...',   
-    data = load_output_data(data_file)
+    data = load_file(path_name+file_name)
     t = data['t']
     #spike_times = get_spike_times(raw_data_file, t[-1], t[1]-t[0])
-    if not os.path.exists(data_path+'/pics'):
-        os.makedirs(data_path+'/pics')
+    pic_path = path_name+'pics/'
+    if not os.path.exists(pic_path):
+        os.makedirs(pic_path)
     print 'done'
     print 'Creating and saving plots...', 
 
@@ -120,7 +122,7 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Mx')
     plt.title('Moment (x)')
     plt.grid()
-    plt.savefig('%s/pics/Mx.png' %data_path)
+    plt.savefig('%sMx.png' %pic_path)
     #draw_spike_times(spike_times)
     #plt.savefig('%s/Mx_spikes.png' %data_path)
 
@@ -132,7 +134,7 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('M')
     plt.title('Moment (y)')
     plt.grid()
-    plt.savefig('%s/pics/My.png' %data_path)
+    plt.savefig('%sMy.png' %pic_path)
     #draw_spike_times(spike_times)
     #plt.savefig('%s/My_spikes.png' %data_path)
 
@@ -144,7 +146,7 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Mz')
     plt.title('Moment (z)')
     plt.grid()
-    plt.savefig('%s/pics/Mz.png' %data_path)
+    plt.savefig('%sMz.png' %pic_path)
     #draw_spike_times(spike_times)
     #plt.savefig('%s/Mz_spikes.png' %data_path)
    
@@ -156,7 +158,7 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fx')
     plt.title('Fx')
     plt.grid()
-    plt.savefig('%s/pics/Fx.png' %data_path)
+    plt.savefig('%sFx.png' %pic_path)
     #draw_spike_times(spike_times)
     #plt.savefig('%s/Fx_spikes.png' %data_path)
 
@@ -168,7 +170,7 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fy')
     plt.title('Fy')
     plt.grid()
-    plt.savefig('%s/pics/Fy.png' %data_path)
+    plt.savefig('%sFy.png' %pic_path)
     #draw_spike_times(spike_times)
     #plt.savefig('%s/Fy_spikes.png' %data_path)
 
@@ -181,14 +183,31 @@ def plot_and_save_3d(data_file, data_path, raw_data_file, show=False):
     plt.ylabel('Fz')
     plt.title('Fz')
     plt.grid()
-    plt.savefig('%s/pics/Fz.png' %data_path)
+    plt.savefig('%sFz.png' %pic_path)
     #draw_spike_times(spike_times)
     #plt.savefig('%s/Fz_spikes.png' %data_path)
 
     print 'done'
-
+    #nice_looking_plots(t, data['dyn'], data['static'])
     if show:
         plt.show()
+
+def nice_looking_plots(t, dyn_data, static_data):
+    plt.rc('text', usetex=True)
+    fig = plt.figure(facecolor='white')
+    ax = plt.axes()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+    ax.plot(t, static_data['FY']/(1.0e-6), t, dyn_data['FY']/(1.0e-6))
+    plt.xlabel('$t\;\; (\mathrm{sec})$')
+    plt.ylabel('$F_z\;\; (\mathrm{\mu N})$')
+    l = ax.legend(['$\mathrm{static}$', 
+                   '$\mathrm{dynamic}$'])
+    l.draw_frame(False)
+    plt.show()
+
 
 def plot_and_save(dim, *args, **kwargs):
     if dim == 2:
@@ -209,13 +228,18 @@ if __name__ == "__main__":
     if os.path.splitext(args.data_file)[1]:
         args.data_file = os.path.splitext(args.data_file)[0]  
 
+    data = load_file('./output_data/%s/%s' %(args.data_file,
+        args.data_file+'_forces.p'))
+    t = data['t']
+    nice_looking_plots(t, data['dyn'], data['static'])
+    '''
     if args.dim == 2:
-        plot_and_save_2d('./%s/%s_forces.p' %(args.data_file, args.data_file),
+        plot_and_save_2d('/%s_forces.p' %(args.data_file),
                          './output_data/%s' %args.data_file, 
                          '/%s.mat' %args.data_file, show=args.show)
     
     else:
-        plot_and_save_3d('./%s/%s_forces.p' %(args.data_file, args.data_file),
+        plot_and_save_3d('/%s_forces.p' %(args.data_file),
                          './output_data/%s' %args.data_file,
                          '/%s.mat' %args.data_file, show=args.show)
-
+    '''

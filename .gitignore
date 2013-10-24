@@ -3,3 +3,6 @@
 /testing
 /output_data
 /doc
+/build
+/dist
+/tracking_forces.egg-info

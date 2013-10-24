@@ -134,7 +134,7 @@ def dynamic_constraint_forces(sys, ddq):
 
     return LAM
 
-def discrete_constraint_forces(sys, qd0, qd1, qd2, dynamic=True):
+def discrete_constraint_forces(sys, qd0, qd1, qd2, dt, dynamic=True):
     """
     Calculates an approximation to the continuous constraint forces by
     solving the DEL equation for lambda.
@@ -169,17 +169,13 @@ def discrete_constraint_forces(sys, qd0, qd1, qd2, dynamic=True):
 
 def save_forces_to_file(file_name, path_name, data, overwrite=True):
     """Saves force data to .p and .mat files."""
-    f_dir = '%s/%s' %(path_name, file_name)
-    if not os.path.exists(f_dir):
-        os.makedirs(f_dir)
-    else:
-        shutil.rmtree(f_dir)
-        os.makedirs(f_dir)
+    if not os.path.exists(path_name):
+        os.makedirs(path_name)
         
-    f = open('%s/%s_forces.p' %(f_dir, file_name), 'w')
+    f = open('%s%s_forces.p' %(path_name, file_name), 'w')
     pickle.dump(data, f)
     f.close()
-    sio.savemat('%s/%s_forces.mat' %(f_dir, file_name), data)
+    sio.savemat('%s%s_forces.mat' %(path_name, file_name), data)
 
 def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
     """Calculates the constraint forces given the dynamics."""
@@ -233,16 +229,16 @@ def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
         RXN_DSC['FZ'][i] = lam_discrete[fz_index]
 
         # Rotate base forces to get axial and transverse components.
-        RXN_DYN['FA'][i],\
-                RXN_DYN['FT'][i] = rotate(lam_dyn[fy_index],
-                                          lam_dyn[fz_index], whisker.base_angle)
-        RXN_STC['FA'][i],\
-                RXN_STC['FT'][i] = rotate(lam_static[fy_index], 
-                                       lam_static[fz_index], whisker.base_angle)
-
-        RXN_DSC['FA'][i],\
-                RXN_DSC['FT'][i] = rotate(lam_discrete[fy_index], 
-                                       lam_discrete[fz_index], whisker.base_angle)
+        #RXN_DYN['FA'][i],\
+        #        RXN_DYN['FT'][i] = rotate(lam_dyn[fy_index],
+        #                                  lam_dyn[fz_index], whisker.base_angle)
+        #RXN_STC['FA'][i],\
+        #        RXN_STC['FT'][i] = rotate(lam_static[fy_index], 
+        #                               lam_static[fz_index], whisker.base_angle)
+        #RXN_DSC['FA'][i],\
+        #        RXN_DSC['FT'][i] = rotate(lam_discrete[fy_index], 
+        #                               lam_discrete[fz_index], whisker.base_angle)
+        
         T[i] = t
         t += DT
     print 'done'    
@@ -257,7 +253,7 @@ def calc_forces_2d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
     print 'done (Saved to %s/%s/%s_forces.mat(.p))' %(path_name, file_name, file_name)
     return FORCES
 
-def calc_forces_3d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
+def calc_forces_3d(whisker, qd, dqd, ddqd, CP, dt, file_name, path_name, ow):
     """ Calculates the constraint forces given the dynamics. """
     print '-'*20+'CALC FORCES (3d)'+'-'*20
     n_steps = len(qd) 
@@ -310,7 +306,7 @@ def calc_forces_3d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
         RXN_STC['FZ'][i] = lam_static[fz_index]
 
         T[i] = t
-        t += DT
+        t += dt
     print 'done'    
 
     FORCES = {'dyn': RXN_DYN, 'static': RXN_STC, 't': T, 'dim': 3}
@@ -318,7 +314,7 @@ def calc_forces_3d(whisker, qd, dqd, ddqd, CP, file_name, path_name, ow):
     # Save the results to a file.
     print 'Saving to file...',
     save_forces_to_file(file_name, path_name, FORCES, ow)
-    print 'done (Saved to %s/%s/%s_forces.mat(.p))' %(path_name, file_name, file_name)
+    print 'done (Saved to %s%s_forces.mat(.p))' %(path_name, file_name)
     return FORCES
 
 def calc_forces(dim, *args, **kwargs):
@@ -328,41 +324,3 @@ def calc_forces(dim, *args, **kwargs):
     elif dim == 3:
         calc_forces_3d(*args, **kwargs)
 
-
-'''
-if __name__ == "__main__":
-    from qfilter import filter_data
-    from whisker import make_default_whisker
-
-    parser = argparse.ArgumentParser(description='whisker force calculation\
-                                                  options')
-    parser.add_argument('data_file', help=".mat file with tracked image data")
-    parser.add_argument('--dim', help="dimension (2 or 3)", default=2, type=int)
-    args = parser.parse_args()
-
-    assert args.dim in [2,3], "dimension must be 2 or 3"
-
-    if os.path.splitext(args.data_file)[1]:
-        args.data_file = os.path.splitext(args.data_file)[0]  
-
-    print 'Loading converted/filtered data...',
-    converted_data = load_converted_data(args.data_file+'.p')
-    try:
-        filtered_data = load_converted_data()
-    except:
-        raise Exception("Could not load filtered data.")
-    print 'done'
-
-    # Build the whisker system. 
-    print 'Building whisker system...'
-    whisker = make_default_whisker(filtered_data['q'][args.ref_index], 
-                                   converted_data['link_length'], dim=args.dim)
-    print 'done'
-    
-    # Calculate the constraint forces.
-    calc_forces(args.dim, whisker,
-            filtered_data['q'], 
-            filtered_data['v'],
-            filtered_data['a'],
-            filtered_data['cp'], args.data_file)
-'''

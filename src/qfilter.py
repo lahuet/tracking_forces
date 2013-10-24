@@ -43,15 +43,14 @@ def filter_trajectory(x, filter_type, filter_options):
                                float(filter_options['filter_fs']),
                                float(filter_options['filter_fc']))
 
-def calc_vel_and_accel(x):
+def calc_vel_and_accel(x, dt):
     """Uses finite-differencing to calculate the velocity and acceleration."""
-    v = np.gradient(x)/DT
-    a = np.gradient(v)/DT
+    v = np.gradient(x)/dt
+    a = np.gradient(v)/dt
     return v, a
     
-def filter_data(file_name, dim=2, ref_index=0, 
-                filter_type='moving_average', filter_options={},
-                file_path='./converted_data'):
+def filter_data(file_name, file_path, dt, dim=2, ref_index=0, 
+                filter_type='moving_average', filter_options={}):
     """ 
     Loads the trajectories, filters them, and calculates velocities and
     accelerations. 
@@ -67,8 +66,8 @@ def filter_data(file_name, dim=2, ref_index=0,
 
     # Load the trajectories from file.
     print 'Loading data...',
-    data = load_converted_data(file_name+'.p')
-    print 'done (Loaded data from /converted_data/%s)' %(file_name+'.p')
+    data = load_file('%s%s' %(file_path, file_name))
+    print 'done (Loaded data from %s%s)' %(file_path, file_name)
 
     # Initialize empty arrays to hold filtered data.
     n_steps, n_q = np.shape(data['q'])
@@ -98,7 +97,7 @@ def filter_data(file_name, dim=2, ref_index=0,
         ang_traj = data['q'][:,i]            
         filtered_ang_traj = filter_trajectory(ang_traj, filter_type,
                                                         filter_options)
-        v, a = calc_vel_and_accel(filtered_ang_traj)
+        v, a = calc_vel_and_accel(filtered_ang_traj, dt)
         q_filtered[:,i] = filtered_ang_traj
         v_filtered[:,i] = v
         a_filtered[:,i] = a
@@ -111,32 +110,15 @@ def filter_data(file_name, dim=2, ref_index=0,
     print 'done'     
 
     FILTERED_DATA = {'q': q_filtered, 'v': v_filtered, 'a': a_filtered, 
-                     'cp': data['CP'], 'ref': ref}
+            'cp': data['CP'], 'ref': ref, 'link_length': data['link_length']}
 
     # Save the results to a file.
     print 'Saving to file...',
-    f = open('%s/%s.p' %(file_path,file_name+'_filtered'), 'w')
+    f = open('%s%s.p' %(file_path, os.path.splitext(file_name)[0]+'_filtered'), 'w')
     pickle.dump(FILTERED_DATA, f)
     f.close()
-    print 'done (Saved to %s/%s_filtered.p)' %(file_path, file_name)
+    print 'done (Saved to %s%s_filtered.p)' %(file_path,
+            os.path.splitext(file_name)[0])
     return FILTERED_DATA
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='whisker data filtering\
-                                                  options')
-    parser.add_argument('data_file', help=".mat file with tracked image data")
-    parser.add_argument('--ref_index', help="ref", type=int, default=0)
-    parser.add_argument('--dim', help="dimension", type=int, default=2)
-    args = parser.parse_args()
-
-    if os.path.splitext(args.data_file)[1]:
-        args.data_file = os.path.splitext(args.data_file)[0]  
-
-    # Check if the data has been converted first.
-    if not os.path.exists('./converted_data/%s.p' %args.data_file):
-        print 'Converted data not found, trying to convert.'
-        load_and_convert(args.data_file+'.mat')
-
-    filter_data(args.data_file, ref_index=args.ref_index, dim=args.dim)    
 

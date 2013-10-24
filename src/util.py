@@ -7,12 +7,6 @@ from scipy.spatial.distance import cdist
 import pickle
 import ConfigParser
 
-# Read the spatial and temporal scaling factors.
-config = ConfigParser.SafeConfigParser()
-config.read(['tracking_forces.cfg'])
-MM_PER_PIXEL = config.getfloat('general', 'mm_per_pixel')
-SCALE = MM_PER_PIXEL/1000 
-DT = config.getfloat('general', 'dt')     
 
 def dist_from_points(x, y):
     """Array of distances between a series of points."""
@@ -91,24 +85,14 @@ def get_spike_times(raw_data_file, t_max, dt):
     spike_times = dt*(np.where(spikes)[0])
     return spike_times[np.where(spike_times<t_max)[0]]
 
-def load_converted_data(file_name):
-    """Loads data from a file in the converted_data folder."""
+def load_file(file_name):
+    """Loads a pickled data file."""
     try:
-        f = open('./converted_data/%s' %file_name, 'r')
+        f = open(file_name)
         data = pickle.load(f)
         f.close()
     except IOError:
-        raise Exception("Could not load converted data.")
-    return data
-
-def load_output_data(file_name):
-    """Loads data from a file in the output_data folder."""
-    try:
-        f = open('./output_data/%s' %file_name, 'r')
-        data = pickle.load(f)
-        f.close()
-    except IOError:
-        raise Exception("Could not load")
+        raise Exception("Could not load file %s" %file_name)
     return data
 
 def dist_from_points_3d(x, y, z):
@@ -361,4 +345,12 @@ def get_reference_frame(cp):
         return index[0]
     else:
         return 0
+
+
+def get_base_points_2d(xbw, ybw, theta_0):
+    """Gets the base point of the whisker in the rotated base coordinates."""
+    pass
+
+def get_base_points_3d():
+    pass
 

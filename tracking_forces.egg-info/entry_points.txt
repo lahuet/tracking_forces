@@ -1,3 +1,0 @@
-[console_scripts]
-tracking_forces = tracking_forces.tracking_forces:main
-

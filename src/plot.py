@@ -69,8 +69,8 @@ def plot_and_save_2d(file_name, path_name, raw_data_file, show=False):
 
     # Resultant force.
     plt.figure(4)
-    plt.plot(t, np.sqrt(data['dyn']['FT']**2+data['dyn']['FA']**2),
-             t, np.sqrt(data['static']['FT']**2+data['static']['FA']**2))
+    plt.plot(t, np.sqrt(data['dyn']['FY']**2+data['dyn']['FZ']**2),
+             t, np.sqrt(data['static']['FY']**2+data['static']['FZ']**2))
     plt.legend(["Dynamic", "Static"])
     plt.xlabel('t')
     plt.ylabel('Fr')
@@ -92,6 +92,7 @@ def plot_and_save_3d(file_name, path_name, raw_data_file, show=False):
     print 'Loading force data...',   
     data = load_file(path_name+file_name)
     t = data['t']
+    dyn = 1.0
     
     pic_path = path_name+'pics/'
     if not os.path.exists(pic_path):
@@ -182,6 +183,7 @@ def nice_looking_plots(t, dyn_data, static_data):
     plt.show()
 
 def plot_and_save(dim, *args, **kwargs):
+    """Wrapper for plotting in the correct dimension."""
     if dim == 2:
         plot_and_save_2d(*args, **kwargs)
     elif dim == 3:

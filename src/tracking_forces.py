@@ -24,7 +24,7 @@ def main():
 
     # Get the input file(s) with the raw data. 
     parser = argparse.ArgumentParser(description='Compute reaction forces from\
-            whisker tracking images')
+            whisker tracking images.')
     parser.add_argument('data_file', help=".mat file with tracked image data")
 
     args = parser.parse_args()

@@ -1,7 +1,7 @@
 """
 This file takes converted trajectory data from the tracked images and filters 
 the raw angle configurations. It also calculates the velocity and acceleration
-at each time step. A number of different filtering methods are provided.
+at each time step. 
 """
 import sys
 import os

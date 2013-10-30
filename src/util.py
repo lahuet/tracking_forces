@@ -346,11 +346,11 @@ def get_reference_frame(cp):
     else:
         return 0
 
-
 def get_base_points_2d(xbw, ybw, theta_0):
     """Gets the base point of the whisker in the rotated base coordinates."""
     pass
 
 def get_base_points_3d():
+    """Gets the base point of the whisker in the rotated base coordinates."""
     pass
 

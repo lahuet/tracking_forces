@@ -9,7 +9,7 @@ from StringIO import StringIO
 from util import *
 from whisker import make_whisker
 
-VIDEO_TIME_SCALING = 0.1/20     # (real time)/(video time)
+VIDEO_TIME_SCALING = 0.1/20     # (real time)/(video time) (roughly)
 
 def load_points(path_name, file_name, dim):
     """Returns x, y, (and z) coordinates of whisker."""
@@ -88,7 +88,7 @@ def animate_whisker_2d(file_name, path_name, dt, show=True, save_movie=False,
 
 def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False,
                        debug=False):
-    """ Draws 3d animation of whisker motion. """
+    """Draws 3d animation of whisker motion."""
     print '-'*22+'ANIMATE (3d)'+'-'*22
 
     X, Y, Z = load_points(path_name, file_name+'.p', 3)
@@ -134,7 +134,7 @@ def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False,
     if save_movie:
         anim.save('%s%s.mp4' %(path_name, file_name), fps=15)
         # I needed the following arguments added to the save function to get
-        # this to work on a mac.
+        # this to work on my mac.
                   #writer=animation.FFMpegFileWriter(),
                   #extra_args=['-vcodec', 'libx264'])
 
@@ -143,16 +143,21 @@ def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False,
         sys.exit(plt.show())
 
 def animate_whisker(dim, *args, **kwargs):
+    """Wrapper for animating in the correct dimension."""
     if dim == 2:
         animate_whisker_2d(*args, **kwargs)
     elif dim == 3:
         animate_whisker_3d(*args, **kwargs)
 
 def get_filtered_points(path_name, file_name, dim):
+    """
+    (Debug) loads converted data, sets the system configurations in trep and
+    plots the points to verify the motion.
+    """
     converted_data = load_file(path_name+file_name+'.p')
     filtered_data = load_file(path_name+file_name+'_filtered.p')
     ref = filtered_data['ref']
-    realstdout = sys.stdout
+    realstdout = sys.stdout     # Don't print the status of build whisker.
     sys.stdout = StringIO()
     whisker = make_whisker(dim, filtered_data['ref'], converted_data['link_length'])
     sys.stdout = realstdout

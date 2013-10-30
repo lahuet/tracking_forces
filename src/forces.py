@@ -182,14 +182,11 @@ def calc_forces_2d(whisker, qd, dqd, ddqd, CP, dt, file_name, path_name, ow):
     n_steps = len(qd) 
 
     RXN_DYN = {'M': np.empty(n_steps), 'FY': np.empty(n_steps),
-              'FZ': np.empty(n_steps), 'FA': np.empty(n_steps), 
-              'FT': np.empty(n_steps)}
+              'FZ': np.empty(n_steps)}
     RXN_STC = {'M': np.empty(n_steps), 'FY': np.empty(n_steps),
-              'FZ': np.empty(n_steps), 'FA': np.empty(n_steps), 
-              'FT': np.empty(n_steps)}
+              'FZ': np.empty(n_steps)}
     RXN_DSC = {'M': np.empty(n_steps), 'FY': np.empty(n_steps),
-              'FZ': np.empty(n_steps), 'FA': np.empty(n_steps), 
-              'FT': np.empty(n_steps)}
+              'FZ': np.empty(n_steps)}
     T = np.empty(n_steps)
     m_index = whisker.get_constraint('theta-0_constraint').index
     fy_index = whisker.get_constraint('FY').index
@@ -252,6 +249,10 @@ def calc_forces_3d(whisker, qd, dqd, ddqd, CP, dt, file_name, path_name, ow):
                'MZ': np.empty(n_steps),
                'FX': np.empty(n_steps), 'FY': np.empty(n_steps), 
                'FZ': np.empty(n_steps)}
+    RXN_DSC = {'MX': np.empty(n_steps), 'MY': np.empty(n_steps), 
+               'MZ': np.empty(n_steps),
+               'FX': np.empty(n_steps), 'FY': np.empty(n_steps), 
+               'FZ': np.empty(n_steps)}
     T = np.empty(n_steps)
     mx_index = whisker.get_constraint('theta_x-0_constraint').index
     my_index = whisker.get_constraint('theta_y-0_constraint').index
@@ -275,6 +276,11 @@ def calc_forces_3d(whisker, qd, dqd, ddqd, CP, dt, file_name, path_name, ow):
         # Calculate constraint forces.
         lam_dyn = dynamic_constraint_forces(whisker, ddqd[i])
         lam_static = static_constraint_forces(whisker)
+        if (i > 0) and (i < (n_steps-1)):
+            lam_discrete = discrete_constraint_forces(whisker, qd[i-1], qd[i],
+                    qd[i+1], dt, dynamic=True)
+        else:
+            lam_discrete = np.zeros(6)
                 
         # Save the reaction forces and time.     
         RXN_DYN['MX'][i] = lam_dyn[mx_index]
@@ -291,11 +297,18 @@ def calc_forces_3d(whisker, qd, dqd, ddqd, CP, dt, file_name, path_name, ow):
         RXN_STC['FY'][i] = lam_static[fy_index]
         RXN_STC['FZ'][i] = lam_static[fz_index]
 
+        RXN_DSC['MX'][i] = lam_discrete[mx_index]
+        RXN_DSC['MY'][i] = lam_discrete[my_index]
+        RXN_DSC['MZ'][i] = lam_discrete[mz_index]
+        RXN_DSC['FX'][i] = lam_discrete[fx_index]
+        RXN_DSC['FY'][i] = lam_discrete[fy_index]
+        RXN_DSC['FZ'][i] = lam_discrete[fz_index]
+        
         T[i] = t
         t += dt
     print 'done'    
 
-    FORCES = {'dyn': RXN_DYN, 'static': RXN_STC, 't': T, 'dim': 3}
+    FORCES = {'dyn': RXN_DYN, 'static': RXN_STC, 'discrete': RXN_DSC, 't': T, 'dim': 3}
 
     # Save the results to a file.
     print 'Saving to file...',

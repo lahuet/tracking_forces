@@ -20,6 +20,8 @@ from util import *
 _multiprocessing = True
 #_multiprocessing = False
 
+PIC_COUNTER = 0
+
 def sample_points(n, d, x, y, z=None, k=1, s=10):
     """
     Samples a 2d or 3d curve to get n points that are each a distance d from
@@ -153,7 +155,13 @@ def convert_frames(file_name, scale, dim, N, start_index=0, stop_index=-1, k=1, 
     y_raw = data_raw[names['y']]
     if dim == 3: z_raw = data_raw[names['z']]
     else: z_raw = [[None for i in range(len(x_raw[0]))]]
-    cp_raw = data_raw[names['cp']]
+    try:
+        cp_raw = data_raw[names['cp']]
+    except KeyError:
+        print 'WARNING: No contact point found. Assuming no contacts.'
+        cp_raw = np.empty((dim,len(range(start_index,stop_index))))
+        cp_raw.fill(np.nan)
+
     print 'done (Loaded from %s)' %file_name
 
     # Get the indices over which to convert. If no stopping index, convert 
@@ -213,18 +221,22 @@ def plot_sampled_points(x,y,xs,ys,cpx,cpy,scale):
     plt.rc('text', usetex=True)
     fig = plt.figure(facecolor='white')
     ax = plt.axes()
+    plt.ylim((-2.5, 1.0))
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
-    ax.plot(SCALE*(x-x[0])*1000,scale*(y-y[0])*1000,xs*1000,ys*1000,'-o',
+    ax.plot(scale*(x-x[0])*1000,scale*(y-y[0])*1000,xs*1000,ys*1000,'-o',
             cpx*1000,cpy*1000, 'o', )
     plt.xlabel('$x\;\; (\mathrm{mm})$')
     plt.ylabel('$y\;\; (\mathrm{mm})$')
-    l = ax.legend(['$\mathrm{image\;data}$', 
-                   '$\mathrm{sampled\;points}$',
-                   '$\mathrm{contact\;point}$'],numpoints=1)
-    l.draw_frame(False)
-    plt.show()
+    #l = ax.legend(['$\mathrm{image\;data}$', 
+    #               '$\mathrm{sampled\;points}$',
+    #               '$\mathrm{contact\;point}$'],numpoints=1)
+    #l.draw_frame(False)
+    #plt.show()
+    global PIC_COUNTER
+    plt.savefig('/home/elliot/wpics/im%d.pdf' %PIC_COUNTER)
+    PIC_COUNTER+=1
 
 

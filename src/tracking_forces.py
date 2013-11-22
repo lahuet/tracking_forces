@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import ConfigParser
 from pkg_resources import Requirement, resource_filename
+import scipy.io as sio
 
 from util import load_file, get_reference_frame
 from whisker import make_whisker
@@ -12,6 +13,32 @@ from qfilter import filter_data
 from forces import calc_forces
 from plot import plot_and_save
 from animate import animate_whisker
+
+def save_output_file(path_name, file_name):
+    """Reads all of the data from a single run and saves to a .mat file."""
+
+    converted_data = load_file('%s%s.p'%(path_name, file_name))
+    filtered_data = load_file('%s%s_filtered.p'%(path_name, file_name))
+    force_data = load_file('%s%s_forces.p'%(path_name, file_name))
+
+    # Save all the data in a useful way.
+    if force_data['dim'] == 2:
+        converted_data['z'] = []
+    output_data = {'config': filtered_data['q'],
+                   'velocity': filtered_data['v'],
+                   'acceleration': filtered_data['a'],
+                   'reference_config': filtered_data['ref'],
+                   'dimension': force_data['dim'],
+                   'time': force_data['t'],
+                   'link_length': filtered_data['link_length'],
+                   'contact_point': filtered_data['cp'],
+                   'reaction_forces': {'static': force_data['static'],
+                                       'dynamic': force_data['dyn'], 
+                                       'discrete': force_data['discrete']},
+                   'sampled_points': {'x': converted_data['x'],
+                                      'y': converted_data['y'],
+                                      'z': converted_data['z']}}
+    sio.savemat('%s%s_output.mat' %(path_name, file_name), output_data)
 
 def main():
     """ 
@@ -125,6 +152,8 @@ def main():
                         config.getboolean('animate', 'save_animation'),
                         config.getboolean('animate', 'debug_conversion'))
         animate_whisker(dim, *animate_args)
+
+    save_output_file(output_dir, data_file)        
 
 if __name__ == "__main__":
     main()

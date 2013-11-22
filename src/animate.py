@@ -84,7 +84,7 @@ def animate_whisker_2d(file_name, path_name, dt, show=True, save_movie=False,
         anim.save('%s%s.mp4' %(path_name, file_name), fps=15)
 
     if show:
-        sys.exit(plt.show())
+        plt.show()
 
 def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False,
                        debug=False):
@@ -140,7 +140,7 @@ def animate_whisker_3d(file_name, path_name, dt, show=True, save_movie=False,
 
     if show:
         print 'done'
-        sys.exit(plt.show())
+        plt.show()
 
 def animate_whisker(dim, *args, **kwargs):
     """Wrapper for animating in the correct dimension."""

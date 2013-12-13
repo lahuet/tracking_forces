@@ -7,3 +7,4 @@
 /dist
 /tracking_forces.egg-info
 *.png
+/examples/*/analysis

@@ -53,9 +53,8 @@ class Whisker2D(trep.System):
         frames = [ty(L, name='Link-0'), frames]
         frames = [tz('z'), [ty('y', name='Base_Point'), frames]]
         frames = [rx('theta-0', name='f0'), frames]
-        frames = [rx('curvature-0', kinematic=True), frames]
-        #frames = [tz('z'), [ty('y', name='Base_Point'), frames]]
         frames = [tz('z0', kinematic=True), [ty('y0', kinematic=True), frames]]
+        frames = [rx('curvature-0', kinematic=True), frames]
         return frames
             
     def set_masses(self, m):
@@ -279,9 +278,8 @@ def make_whisker(dim, q0, L, rbase=100e-6, taper=1.0/15, damping_ratio=None,
     K = E*I/L
     M = calc_mass(L, N, rho, rbase, taper)
     if damping_ratio<0:
-        C = get_interp_damping(L,N)
-    else:
-        C = calc_damping(N, K, M, damping_ratio)
+        damping_ratio = np.append([1.0], get_interp_damping(L,N))
+    C = calc_damping(N, K, M, L, damping_ratio)
     parameters = {'L': L, 'k': K[:-1], 'c': C, 'm': M, 'N':N}
     print 'done'
 
@@ -309,11 +307,11 @@ def calc_mass(L, N, rho, rbase, taper):
     R = np.linspace(rbase, rbase*taper, N+1)
     return rho*np.pi*(R**2)*L
 
-def calc_damping(N, k, m, zeta):
+def calc_damping(N, k, m, L, zeta):
     """
     Calculates damping coefficients at each node from a given damping ratio.
     """
-    return 2*m*np.sqrt(k/m)*zeta
+    return 2*L*np.sqrt(k*m)*zeta
 
 def get_interp_mass(L, N):
     """Calculates mass by interpolation of SWD values."""
@@ -323,13 +321,13 @@ def get_interp_mass(L, N):
 
 def get_interp_damping(L, N):
     """Calculates damping by interpolaton of SWD values. """
-    f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['c'], 
+    f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['zeta'], 
             fill_value=0.0, bounds_error=False)
     return f(np.linspace(L, L*N, N))
 
 # Default parameters for a single whisker, used for interpolation of values for 
 # all whiskers. These are the latest values from CND.
-SWD = {'N': 13,
+SWD_old = {'N': 13,
        'L': [4.08e-3]*13,
        'k': [3.26e-5, 3.09e-5, 2.68e-5, 2.16e-5, 1.64e-5, 1.15e-5, 7.47e-6,
              4.40e-5, 2.28e-6, 9.80e-7, 3.17e-7, 5.97e-8, 2.73e-9],
@@ -337,3 +335,13 @@ SWD = {'N': 13,
              1.91e-9, 6.81e-10, 1.81e-10, 2.59e-11, 1.03e-12, 4.50e-12],
        'm': [3.00e-7, 2.35e-7, 1.80e-7, 1.34e-7, 9.72e-8, 6.76e-8, 4.47e-8,
              2.77e-8, 1.56e-8, 7.71e-9, 3.06e-9, 8.01e-10, 6.83e-11]}        
+
+SWD = {'N': 13, 
+       'L': [3.78e-3]*13,
+       'k': [65.3e-6, 46.5e-6, 32.2e-6, 21.5e-6, 13.9e-6, 8.53e-6, 4.94e-6,
+             2.64e-6, 1.27e-6, 0.529e-6, 0.175e-6, 0.00358e-6],
+       'c': [],
+       'zeta': [0.988, 0.909, 0.829, 0.750, 0.670, 0.590, 0.511, 0.431, 0.352,
+           0.272, 0.192, 0.113, 0.033],
+       'm': [104, 88.7, 74.2, 61.1, 49.9, 38.6, 29.3, 21.3, 14.5, 9.09, 4.92,
+           2.03, 0.42]}

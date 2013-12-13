@@ -70,7 +70,8 @@ def points_to_angles_2d(points):
     Takes a set of points in R^2 and converts to a unique angle configuration.
     """
     x, y = zip(*points)
-    angles = np.arctan2(np.diff(y),np.diff(x)) 
+    #angles = np.arctan2(np.diff(y),np.diff(x)) 
+    angles = np.arctan(np.diff(y)/np.diff(x)) 
     for i in range(1,len(points)-1):
         angles[i] = angles[i] - sum(angles[:i])
     return angles
@@ -272,19 +273,18 @@ def relative_angle_config_2d(q, q_ref):
     """
     Offsets the angles in a 2D whisker relative to a reference configuration.
     """
-    ang = q[2:]
-    ref_ang = q_ref[2:]
+    ang = np.hstack((q[0],q[3:]))
+    ref_ang = np.hstack((q_ref[0],q_ref[3:]))
 
-    rel_config = np.empty(len(q))
-    rel_config[0] = q[0]
-    rel_config[1] = q[1]
+    rel_ang = np.empty(len(ang))
 
-    for i in range(len(q)-2):
+    for i in range(len(ang)):
         Ri = g_rz(ang[i])[:-1,:-1]
         Rb = g_rz(ref_ang[i])[:-1,:-1]
         R = np.dot(Rb.T, Ri)
-        rel_config[i+2] = np.arcsin(-R[0,1])
+        rel_ang[i] = np.arcsin(-R[0,1])
    
+    rel_config = np.hstack((rel_ang[0], q[1], q[2], rel_ang[1:]))
     return rel_config
 
 def relative_angle_config(q, q_ref):

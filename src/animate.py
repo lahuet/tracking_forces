@@ -163,14 +163,14 @@ def get_filtered_points(path_name, file_name, dim):
     sys.stdout = realstdout
     N = whisker.num_links  
     n = len(converted_data['x'])
-
+    
     X = np.empty((n, N+1))
     Y = np.empty((n, N+1))
     if dim > 2: Z = np.empty((n,N+1))
     for i in range(n):
         whisker.qd = filtered_data['q'][i]
         if dim == 2:
-            X[i], Y[i] = zip(*whisker.config_points)  
+            X[i], Y[i] = zip(*whisker.config_points) 
         else:
             X[i], Y[i], Z[i] = zip(*whisker.config_points)        
        

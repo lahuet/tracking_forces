@@ -45,7 +45,8 @@ def main():
     Runs the entire process of computing reaction forces from raw input to 
     final output. The file name containing the raw data should be given 
     as the only argument. The various options are read from the configuration
-    file.
+    file. Since the dimension might be changed often, you can override the
+    dimension on the command line.
     """
     print 20*'+'+'TRACKING FORCES'+21*'+'
 
@@ -53,6 +54,7 @@ def main():
     parser = argparse.ArgumentParser(description='Compute reaction forces from\
             whisker tracking images.')
     parser.add_argument('data_file', help=".mat file with tracked image data")
+    parser.add_argument('--dim', type=int, default=-1)
 
     args = parser.parse_args()
 
@@ -78,17 +80,33 @@ def main():
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    dim = config.getint('general', 'dimension')
+    dim = args.dim
+    if dim < 0:
+        dim = config.getint('general', 'dimension')
     mm_per_pixel = config.getfloat('general', 'mm_per_pixel')
     scale = mm_per_pixel/1000 
     dt = config.getfloat('general', 'dt')     
 
     # Load the raw data, sample the images based on the number of links and 
     # convert to configurations in terms of angles.
-    variable_names = {'x': config.get('convert', 'mat_xname'),
-                      'y': config.get('convert', 'mat_yname'),
-                      'z': config.get('convert', 'mat_zname'),
-                      'cp': config.get('convert', 'mat_cpname')}
+    if dim == 2:
+        try:
+            variable_names = {'x': config.get('convert', 'mat_xname_2d'),
+                              'y': config.get('convert', 'mat_yname_2d'),
+                              'z': config.get('convert', 'mat_zname_2d'),
+                              'cp': config.get('convert', 'mat_cpname_2d')}
+        except:
+            variable_names = {'x': 'xw', 'y': 'yw', 'z': None, 'cp': 'CP'}
+
+    else:
+        try:
+            variable_names = {'x': config.get('convert', 'mat_xname_3d'),
+                              'y': config.get('convert', 'mat_yname_3d'),
+                              'z': config.get('convert', 'mat_zname_3d'),
+                              'cp': config.get('convert', 'mat_cpname_3d')}
+        except:
+            variable_names = {'x': 'xw3d', 'y': 'yw3d', 'z': 'zw3d', 'cp': 'CP'}
+
     conversion_args = (data_file+'.mat', scale, dim,
                        config.getint('convert', 'N'),
                        config.getint('convert','start'),

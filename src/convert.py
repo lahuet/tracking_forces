@@ -218,25 +218,27 @@ def convert_frames(file_name, scale, dim, N, start_index=0, stop_index=-1, k=1, 
 def plot_sampled_points(x,y,xs,ys,cpx,cpy,scale):
     """Get nice-looking pictures of the conversion results. (debug)"""
     import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.rcParams.update({'font.size': 18})
     plt.rc('text', usetex=True)
-    fig = plt.figure(facecolor='white')
+    fig = plt.figure(facecolor='white',figsize=(12,6))
     ax = plt.axes()
-    plt.ylim((-2.5, 1.0))
+    plt.ylim((-3.0, 1.5))
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
-    ax.plot(scale*(x-x[0])*1000,scale*(y-y[0])*1000,xs*1000,ys*1000,'-o',
-            cpx*1000,cpy*1000, 'o', )
+    ax.plot(scale*(x-x[0])*1000,scale*(y-y[0])*1000, xs*1000,ys*1000,'--o',
+            cpx*1000,cpy*1000, 'o', linewidth=3, markersize=10)
     plt.xlabel('$x\;\; (\mathrm{mm})$')
     plt.ylabel('$y\;\; (\mathrm{mm})$')
     #l = ax.legend(['$\mathrm{image\;data}$', 
     #               '$\mathrm{sampled\;points}$',
     #               '$\mathrm{contact\;point}$'],numpoints=1)
     #l.draw_frame(False)
-    #plt.show()
-    global PIC_COUNTER
-    plt.savefig('/home/elliot/wpics/im%d.pdf' %PIC_COUNTER)
-    PIC_COUNTER+=1
+    plt.show()
+    #global PIC_COUNTER
+    #plt.savefig('/home/elliot/wpics/im%d.pdf' %PIC_COUNTER)
+    #PIC_COUNTER+=1
 
 

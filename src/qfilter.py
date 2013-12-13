@@ -80,20 +80,22 @@ def filter_data(file_name, file_path, dt, dim=2, ref_index=0,
     # build the whisker system later.
     ref = data['q'][ref_index]
     data['q'] = get_relative_configs(data['q'], data['q'][ref_index], dim)
+        
+    # Here we check if any angles are greater than two radians. This can 
+    # happen for bad frames in which the whisker image is really short. 
+    # This causes the links to fold on themselves to fit into the given 
+    # length. If this happens we simply throw out the frame and use the 
+    # previous frame again.
+    for i in range(1,n_steps):
+        if np.any(data['q'][i]>1.0): 
+            pass
+            #print 'TEST'
+            #data['q'][i,:] = data['q'][i-1,:]
 
     # For each angle in the trajectory, filter the raw angle and then compute
     # the velocity and accelerations.
     print 'Filtering and computing finite differences...',
     for i in range(n_q):
-
-        # Here we check if any angles are greater than two radians. This can 
-        # happen for bad frames in which the whisker image is really short. 
-        # This causes the links to fold on themselves to fit into the given 
-        # length. If this happens we simply throw out the frame and use the 
-        # previous frame again.
-        if np.any(abs(data['q'][:,i])>2.0):
-            data['q'][:,i] = data['q'][:,i-1]
-
         ang_traj = data['q'][:,i]            
         filtered_ang_traj = filter_trajectory(ang_traj, filter_type,
                                                         filter_options)

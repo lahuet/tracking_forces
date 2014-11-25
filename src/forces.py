@@ -6,6 +6,11 @@ import trep
 
 from util import *
 
+"""
+20140221 - Lucie edits code to call self.nodes instead of self.masses -
+a fallout of moving the masses to link center of masses instead of nodes.
+"""
+
 
 def update_contact(whisker, CP):
     """Adjusts the contact constraint to match current contact point."""
@@ -48,7 +53,8 @@ def update_contact(whisker, CP):
                 # This means there is no force in the z-direction due to the peg
                 # constraint.
                 x1, y1 = plane_frame.p()[:2]
-                next_frame = whisker.masses[whisker.masses.index(plane_frame)+1]
+                # next_frame = whisker.masses[whisker.masses.index(plane_frame)+1]
+                next_frame = whisker.nodes[whisker.nodes.index(plane_frame)+1]
                 x2, y2 = next_frame.p()[:2]
                 nw = (-(y2-y1), x2-x1, 0.0)
                 RT = np.transpose(plane_frame.g()[:-1,:-1])
@@ -65,7 +71,8 @@ def get_closest_frame(whisker, CP):
     else:
         x, y, z = zip(*whisker.config_points)
         index = closest_point_3d(x, y, z, CP)
-    return whisker.masses[index]
+    # return whisker.masses[index]
+    return whisker.nodes[index]
 
 def remove_peg_constraint(whisker):
     """Removes the peg constraint from the whisker system."""
@@ -100,7 +107,9 @@ def static_constraint_forces(sys):
                                    for q1 in sys.dyn_configs])
     dLdq = np.array([sys.L_dq(q1) for q1 in sys.dyn_configs])
 
-    B = np.dot(np.linalg.inv(np.dot(A, AT)), A)
+    # B = np.dot(np.linalg.inv(np.dot(A, AT)), A)
+    # Lucie: pseudoinverse insertion!!
+    B = np.linalg.pinv(np.transpose(A))
     D = dLdq + F
     LAM = -np.dot(B, D)
 
@@ -115,10 +124,12 @@ def dynamic_constraint_forces(sys, ddq):
     dq of system and specified ddq. Solves the EL equations for lambda in the
     least squares sense.
     """
+    # dh/dq
     A = np.array([[con.h_dq(q1) for q1 in sys.dyn_configs] 
                                 for con in sys.constraints])
     AT = np.transpose(A)
 
+    # array of external forcing for each dynamic config
     F = np.array([sum([force.f(q1) for force in sys.forces]) 
                                    for q1 in sys.dyn_configs])
     dLdq = np.array([sys.L_dq(q1) for q1 in sys.dyn_configs])
@@ -127,7 +138,9 @@ def dynamic_constraint_forces(sys, ddq):
     dLddqddq = np.array([[sys.L_ddqddq(q1, q2) for q1 in sys.dyn_configs] 
                                                for q2 in sys.dyn_configs])
 
-    B = np.dot(np.linalg.inv(np.dot(A, AT)), A)
+    # B = np.dot(np.linalg.inv(np.dot(A, AT)), A)
+    # Lucie: pseudoinverse insertion!!
+    B = np.linalg.pinv(np.transpose(A))
     D = np.dot(dLddqddq, ddq) + np.dot(dLddqdq, sys.dqd) - dLdq - F
     LAM = np.dot(B, D)
 
@@ -159,7 +172,9 @@ def discrete_constraint_forces(sys, qd0, qd1, qd2, dt, dynamic=True):
     Dh = np.array([[c.h_dq(q1) for q1 in sys.dyn_configs] for c in
                     sys.constraints])
     
-    dh_inv = np.linalg.inv(np.dot(Dh, Dh.T))
+    # dh_inv = np.linalg.inv(np.dot(Dh, Dh.T))
+    # Lucie: pseudoinverse insertion!!
+    dh_inv = np.linalg.pinv(np.dot(Dh, Dh.T))
     lam_bar = np.dot(dh_inv, np.dot(Dh,(D2Ld + D1Ld + Fm)))
     sys.set_state(q, dq) # Reset the initial system state.
 

@@ -6,6 +6,11 @@ from scipy.optimize import fmin
 
 from util import extract_angles
 
+"""
+20140214 - Lucie and James edit whisker to make links conical frustums and instead of cylinders
+    This entails: changing the mass and changing the location of the mass (which requires adding new frames)
+"""
+
 class FixedConfig(trep.Constraint):
     """A constraint that fixes a configuration variable to a constant value."""
     def __init__(self, system, config_name, reference):
@@ -35,7 +40,7 @@ class Whisker2D(trep.System):
         self.dim = 2
         self.num_links = parameters['N']
         self.lengths = parameters['L'] 
-        self.import_frames(self.whisker_frames(parameters['L']))
+        self.import_frames(self.whisker_frames(parameters['L'], parameters['CoM']))
         self.add_base_constraints()
 
         self.add_node_springs(parameters['k'])
@@ -43,14 +48,14 @@ class Whisker2D(trep.System):
         self.set_masses(parameters['m'])
         self._q0 = None
         
-    def whisker_frames(self, L):
+    def whisker_frames(self, L, CoM):
         """Creates a list of frames that define the whisker."""
         frames = []
         for j in reversed(range(1, self.num_links)):
-            frames = [ty(L, name='Link-%d' %j), frames]
+            frames = [ty(CoM[j], name='LCoM-%d' %j), ty(L, name='Link-%d' %j), frames]
             frames = [rx('theta-%d' %j, name='f%d' %j), frames]
             frames = [rx('curvature-%d' %j, kinematic=True), frames]
-        frames = [ty(L, name='Link-0'), frames]
+        frames = [ty(CoM[0], name='LCoM-0'), ty(L, name='Link-0'), frames]
         frames = [tz('z'), [ty('y', name='Base_Point'), frames]]
         frames = [rx('theta-0', name='f0'), frames]
         frames = [tz('z0', kinematic=True), [ty('y0', kinematic=True), frames]]
@@ -61,18 +66,18 @@ class Whisker2D(trep.System):
         """Sets masses at each of the whisker's nodes."""
         for j in range(self.num_links):
             self.get_frame('Link-%d' %j).set_mass((m[j],0,0,0))
-        self.get_frame('Base_Point').set_mass((m[0],0,0,0))
+        # self.get_frame('Base_Point').set_mass((m[0],0,0,0))
     
     def add_node_springs(self, k):
         """Adds configuration (torsional) springs at each node."""
-        for j in range(1,self.num_links):
+        for j in range(self.num_links):
             trep.potentials.ConfigSpring(self, 'theta-%d' %j, k=k[j], 
                     name='spring-%d' %j)
 
     def add_node_damping(self, c, default=0.0):
         """Adds damping at each node."""
         damp_dict = {}
-        for j in range(1,self.num_links):
+        for j in range(self.num_links):
             damp_dict.update({'theta-%d' %j: c[j]})   
         trep.forces.Damping(self, default, damp_dict)
 
@@ -97,7 +102,11 @@ class Whisker2D(trep.System):
         Returns list of points of the whisker's nodes in the current 
         configuration. 
         """
-        return np.array([f.p()[1:3] for f in self.masses])
+        # return np.array([f.p()[1:3] for f in self.masses])
+        # bpts = self.get_frame('Base_Point').p()[1:3]
+        # lpts = np.array([self.get_frame('Link-%d' %j).p()[1:3] for j in range(self.num_links)])
+        # return np.concatenate(([bpts],lpts), axis=0)
+        return np.array([f.p()[1:3] for f in self.nodes])
 
     @config_points.setter
     def config_points(self, points):
@@ -105,6 +114,7 @@ class Whisker2D(trep.System):
         Sets the positions of the whisker's nodes to match a given list 
         of points.
         """
+        # print 'setter ping!'
         ang = points_to_angles(points)
         for i in range(self.num_links):
             self.get_config('theta-%d' %i).q = ang[i]
@@ -119,6 +129,15 @@ class Whisker2D(trep.System):
         for i in range(self.num_links):
             self.get_config('theta-%d' %i).q =\
                     (angles[i]-self.get_config('curvature-%d' %i).q)
+
+    @property
+    def nodes(self):
+        """
+        Returns a tuple of the frames of the whisker's nodes
+        """
+        fbase = tuple([self.get_frame('Base_Point')])
+        flinks = tuple([self.get_frame('Link-%d' %j) for j in range(self.num_links)])
+        return fbase + flinks
 
     @property
     def reference_shape(self):
@@ -159,23 +178,23 @@ class Whisker3D(trep.System):
         self.num_links = parameters['N']
         self._link_length = parameters['L'] 
         self._ref = ref
-        self.import_frames(self.whisker_frames())
+        self.import_frames(self.whisker_frames(parameters['CoM']))
         self.add_base_constraints()
 
         self.add_node_springs(parameters['k'])
         self.add_node_damping(parameters['c'])
         self.set_masses(parameters['m'])
         
-    def whisker_frames(self):
+    def whisker_frames(self, CoM):
         """Creates a list of frames that define the whisker."""
         x0, y0, z0, th_x0, th_y0, th_z0 = extract_angles(self._ref)
         L = self._link_length
         frames = []
         for j in reversed(range(1, self.num_links)):
-            frames = [tx(L, name='Link-%d' %j), frames]
+            frames = [tx(CoM[j], name='LCoM-%d' %j), tx(L, name='Link-%d' %j), frames]
             frames = [rz('theta_z-%d' %j), [ry('theta_y-%d' %j), frames]]
             frames = [rz(th_z0[j]),[ry(th_y0[j]),frames]]
-        frames = [tx(L, name='Link-0'), frames]
+        frames = [tx(CoM[0], name='LCoM-0'), tx(L, name='Link-0'), frames]
         frames = [tx('xb'), [ty('yb'), [tz('zb', name='Rotated_Base_Point'), 
                    frames]]]
         frames = [rz('theta_z-0'), [ry('theta_y-0'), [rx('theta_x-0'),
@@ -187,13 +206,13 @@ class Whisker3D(trep.System):
     def set_masses(self, m):
         """Sets masses at each of the whisker's nodes."""
         for j in range(self.num_links):
-            self.get_frame('Link-%d' %j).set_mass((m[j],0,0,0))
-        self.get_frame('Rotated_Base_Point').set_mass((m[0],0,0,0))
+            self.get_frame('LCoM-%d' %j).set_mass((m[j],0,0,0))
+        # self.get_frame('Rotated_Base_Point').set_mass((m[0],0,0,0))
         #self.get_frame('Base_Point').set_mass((m[0],0,0,0))
     
     def add_node_springs(self, k):
         """Adds configuration (torsional) springs at each node."""
-        for j in range(1,self.num_links):
+        for j in range(self.num_links):
             trep.potentials.ConfigSpring(self, 'theta_y-%d' %j, k=k[j],
                     name='spring_y-%d' %j)
             trep.potentials.ConfigSpring(self, 'theta_z-%d' %j, k=k[j],
@@ -202,7 +221,7 @@ class Whisker3D(trep.System):
     def add_node_damping(self, c, default=0.0):
         """Adds damping at each node."""
         damp_dict = {}
-        for j in range(1,self.num_links):
+        for j in range(self.num_links):
             damp_dict.update({'theta_y-%d' %j: c[j], 'theta_z-%d' %j: c[j]})   
         trep.forces.Damping(self, default, damp_dict)
 
@@ -231,12 +250,22 @@ class Whisker3D(trep.System):
         Returns list of points of the whisker's nodes in the current 
         configuration. 
         """
-        return np.array([f.p()[:-1] for f in self.masses])
+        # return np.array([f.p()[:-1] for f in self.masses])
+        return np.array([f.p()[:-1] for f in self.nodes])
 
     @property
     def config_angles(self):
         return np.array([cnfg.q for cnfg in self.dyn_configs 
                                              if 'theta' in cnfg.name])
+
+    @property
+    def nodes(self):
+        """
+        Returns a tuple of the frames of the whisker's nodes
+        """
+        fbase = tuple([self.get_frame('Base_Point')])
+        flinks = tuple([self.get_frame('Link-%d' %j) for j in range(self.num_links)])
+        return fbase + flinks
 
     @property
     def reference_shape(self):
@@ -277,10 +306,12 @@ def make_whisker(dim, q0, L, rbase=100e-6, taper=1.0/15, damping_ratio=None,
     I = calc_inertia(N, rbase, taper)
     K = E*I/L
     M = calc_mass(L, N, rho, rbase, taper)
+    CoM = calc_com(L, N, rbase, taper)
     if damping_ratio<0:
-        damping_ratio = np.append([1.0], get_interp_damping(L,N))
-    C = calc_damping(N, K, M, L, damping_ratio)
-    parameters = {'L': L, 'k': K[:-1], 'c': C, 'm': M, 'N':N}
+        # damping_ratio = np.append([1.0], get_interp_damping(L,N))
+        damping_ratio = get_interp_damping(L,N)
+    C = calc_damping(N, K, M, CoM, damping_ratio)
+    parameters = {'L': L, 'k': K, 'c': C, 'm': M, 'N':N, 'CoM':CoM}
     print 'done'
 
     print 'Building system...',
@@ -300,30 +331,38 @@ def make_whisker(dim, q0, L, rbase=100e-6, taper=1.0/15, damping_ratio=None,
 def calc_inertia(N, rbase, taper):
     """The moment of inertia for a tapered cylinder with N points."""
     R = np.linspace(rbase, rbase*taper, N+1)
-    return 0.25*np.pi*R**4
+    return 0.25*np.pi*R[:-1]**4
 
 def calc_mass(L, N, rho, rbase, taper):
-    """The mass at each node."""
+    """The mass for each link."""
     R = np.linspace(rbase, rbase*taper, N+1)
-    return rho*np.pi*(R**2)*L
+    # return rho*np.pi*(R**2)*L
+    return rho*(np.pi*L/3)*(R[:-1]**2 + R[:-1]*R[1:] + R[1:]**2)
 
-def calc_damping(N, k, m, L, zeta):
+def calc_com(L, N, rbase, taper):
+    """The location of the center of mass for each link"""
+    R = np.linspace(rbase, rbase*taper, N+1)
+    return (L/4.)*(R[:-1]**2 + 2*R[:-1]*R[1:] + 3*R[1:]**2)/(R[:-1]**2 + R[:-1]*R[1:] + R[1:]**2)
+
+def calc_damping(N, k, m, CoM, zeta):
     """
     Calculates damping coefficients at each node from a given damping ratio.
     """
-    return 2*L*np.sqrt(k*m)*zeta
+    return 2*CoM*np.sqrt(k*m)*zeta
 
-def get_interp_mass(L, N):
-    """Calculates mass by interpolation of SWD values."""
-    f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['m'], 
-            fill_value=0.0, bounds_error=False)
-    return f(np.linspace(L, L*N, N))
+# def get_interp_mass(L, N):
+#     """Calculates mass by interpolation of SWD values."""
+#     f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['m'], 
+#             fill_value=0.0, bounds_error=False)
+#     return f(np.linspace(L, L*N, N))
 
 def get_interp_damping(L, N):
     """Calculates damping by interpolaton of SWD values. """
-    f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['zeta'], 
-            fill_value=0.0, bounds_error=False)
-    return f(np.linspace(L, L*N, N))
+    # f = interp1d(np.linspace(0, sum(SWD['L']), SWD['N']), SWD['zeta'], 
+    #         fill_value=0.0, bounds_error=False)
+    # return f(np.linspace(L, L*N, N))
+    f = interp1d(np.linspace(0,1,SWD['N']+1), np.append(SWD['zeta'],0))
+    return f(np.linspace(0,1,N+1))[:-1]
 
 # Default parameters for a single whisker, used for interpolation of values for 
 # all whiskers. These are the latest values from CND.
